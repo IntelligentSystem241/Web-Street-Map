@@ -1,0 +1,88 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Bản đồ & Thời tiết</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    #map { height: 400px; width: 100%; margin-bottom: 20px; }
+    body { font-family: Arial; margin: 20px; }
+    canvas { max-width: 600px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+<h2>Nhập địa chỉ để tìm vị trí và xem biểu đồ thời tiết</h2>
+<input type="text" id="address" placeholder="Ví dụ: Hà Nội, Việt Nam" size="50">
+<button onclick="searchLocation()">Tìm kiếm</button>
+
+<p id="coordinates"></p>
+
+<div id="map"></div>
+<canvas id="weatherChart"></canvas>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+  var map = L.map('map').setView([21.0285, 105.8542], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  var marker;
+  let weatherChart;
+
+  function searchLocation() {
+    var address = document.getElementById("address").value;
+    if (!address) return alert("Vui lòng nhập địa chỉ");
+
+    fetch('/get_location_weather', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (!data.lat || !data.lon) return alert("Không tìm thấy địa chỉ.");
+
+      let lat = data.lat;
+      let lon = data.lon;
+      document.getElementById("coordinates").innerText = `Vĩ độ: ${lat}, Kinh độ: ${lon}`;
+
+      map.setView([lat, lon], 15);
+      if (marker) map.removeLayer(marker);
+      marker = L.marker([lat, lon]).addTo(map).bindPopup("Địa điểm đã chọn").openPopup();
+
+      // Biểu đồ
+      const labels = ['Nhiệt độ (°C)', 'Độ ẩm (%)', 'Gió (m/s)'];
+      const values = [data.temp, data.humidity, data.wind_speed];
+      const colors = ['#ff6384', '#36a2eb', '#4bc0c0'];
+
+      if (weatherChart) weatherChart.destroy();
+      const ctx = document.getElementById('weatherChart').getContext('2d');
+      weatherChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'Dữ liệu thời tiết', data: values, backgroundColor: colors }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: 'Biểu đồ thời tiết hiện tại' }
+          },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    });
+  }
+</script>
+
+</body>
+</html>
