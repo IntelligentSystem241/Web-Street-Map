@@ -6,7 +6,13 @@ const MapSearch = () => {
   const [position, setPosition] = useState([21.0285, 105.8542]); // Hà Nội mặc định
 
   const handleSearch = async () => {
-    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`, {
+      headers: {
+        "User-Agent": "address-map-react (https://yourdomain.com)",
+        "Accept-Language": "vi"
+      }
+    });
     const data = await response.json();
     if (data && data.length > 0) {
       const lat = parseFloat(data[0].lat);
@@ -15,7 +21,12 @@ const MapSearch = () => {
     } else {
       alert("Không tìm thấy địa chỉ!");
     }
-  };
+  } catch (error) {
+    alert("Lỗi khi tìm kiếm địa chỉ. Vui lòng thử lại sau.");
+    console.error(error);
+  }
+};
+
 
   return (
     <div>
